@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理决策理论与方法复习参考</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        /* 全局样式 - 蓝色主题 */
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f6f8ff; } 
+        .tab-active { background-color: #3b82f6; color: white; } /* 使用蓝色系作为主色调 */
+        .tab-inactive { background-color: white; color: #4b5563; }
+        
+        /* 知识点标题样式 - 蓝色 */
+        h2 { 
+            font-size: 1.75rem; 
+            font-weight: 700; 
+            margin-top: 1.5rem; 
+            margin-bottom: 1rem; 
+            color: #3b82f6; 
+            padding-bottom: 0.5rem; 
+            border-bottom: 2px solid #bfdbfe; 
+        }
+        h3 { font-size: 1.25rem; font-weight: 600; margin-top: 1rem; margin-bottom: 0.5rem; color: #1e3a8a; } /* 深蓝色 */
+        
+        /* 测验选项按钮样式 */
+        .quiz-option { transition: all 0.2s; cursor: pointer; }
+        .quiz-option:hover { background-color: #eff6ff; border-color: #93c5fd; } /* 浅蓝色悬停 */
+        .quiz-option:disabled { cursor: not-allowed; }
+
+        /* 自定义滚动条 - 调整为蓝色 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #93c5fd; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #60a5fa; }
+    </style>
+
+    <script>
+        // 核心交互函数：检查答案并显示解析
+        function checkAnswer(questionId, selectedBtn, correctAnswer, rationale) {
+            const allOpts = document.querySelectorAll(`[data-qid="${questionId}"] .quiz-option`);
+            const reasonDiv = document.getElementById(`reason-${questionId}`);
+            
+            // 1. 禁用所有按钮
+            allOpts.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'pointer-events-none');
+                btn.innerHTML = btn.textContent.replace(/<i[^>]*><\/i>/g, '').trim(); // 移除旧图标
+            });
+
+            // 2. 标记答案
+            const isCorrect = selectedBtn.getAttribute('data-answer') === correctAnswer;
+            
+            if (isCorrect) {
+                // 答对
+                selectedBtn.classList.remove('opacity-50');
+                selectedBtn.classList.add('bg-blue-50', 'border-blue-300', 'text-blue-600', 'font-bold');
+                selectedBtn.innerHTML += ' <i class="ph ph-check-circle text-lg inline-block align-middle"></i>';
+            } else {
+                // 答错
+                selectedBtn.classList.remove('opacity-50');
+                selectedBtn.classList.add('bg-red-100', 'border-red-500', 'text-red-700');
+                selectedBtn.innerHTML += ' <i class="ph ph-x-circle text-lg inline-block align-middle"></i>';
+                
+                // 自动高亮正确答案
+                allOpts.forEach(btn => {
+                    const isCorrectOption = btn.getAttribute('data-answer') === correctAnswer;
+                    if (isCorrectOption) {
+                        btn.classList.remove('opacity-50');
+                        btn.classList.add('bg-blue-50', 'border-blue-300', 'text-blue-600');
+                        btn.innerHTML += ' <i class="ph ph-check-circle text-lg inline-block align-middle"></i>';
+                    }
+                });
+            }
+
+            // 3. 显示解析
+            reasonDiv.innerHTML = `<span class="font-bold text-lg">${isCorrect ? '✅ 回答正确' : '❌ 回答错误'}。</span><br>解析：${rationale}`;
+            reasonDiv.classList.remove('hidden');
+            
+            // 4. 重新渲染 MathJax (只渲染解析部分)
+            typesetMath([reasonDiv]);
+        }
+
+        // 辅助函数，用于在点击按钮时重新渲染 MathJax
+        function typesetMath(elements) {
+            if (typeof MathJax !== 'undefined' && MathJax.typeset) {
+                MathJax.typesetPromise(elements).catch((err) => console.log('MathJax Typeset Error: ' + err.message));
+            }
+        }
+        
+        // 新增：计算题/问答题切换显示/隐藏答案的逻辑
+        function toggleAnswer(answerId) {
+            const answerDiv = document.getElementById(answerId);
+            const button = answerDiv.previousElementSibling; // 获取前一个元素，即按钮
+            const icon = button.querySelector('i');
+            
+            // 切换隐藏状态
+            if (answerDiv.classList.contains('hidden')) {
+                answerDiv.classList.remove('hidden');
+                // 切换图标，向上箭头表示已展开
+                icon.classList.remove('ph-caret-down');
+                icon.classList.add('ph-caret-up');
+                
+                // 确保 MathJax 在内容显示时被正确渲染
+                typesetMath([answerDiv]);
+            } else {
+                answerDiv.classList.add('hidden');
+                // 切换图标，向下箭头表示已折叠
+                icon.classList.remove('ph-caret-up');
+                icon.classList.add('ph-caret-down');
+            }
+        }
+
+
+        // Tab 切换逻辑 (保持不变，但主题色已在 CSS 中修改)
+        function openTab(tabName) {
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.add('hidden'));
+
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(btn => {
+                btn.classList.remove('tab-active');
+                btn.classList.add('tab-inactive');
+            });
+
+            document.getElementById(tabName).classList.remove('hidden');
+            document.querySelector(`[onclick="openTab('${tabName}')"]`).classList.add('tab-active');
+            document.querySelector(`[onclick="openTab('${tabName}')"]`).classList.remove('tab-inactive');
+            
+            // 重新渲染可见Tab内的MathJax
+            typesetMath([document.getElementById(tabName)]);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // 默认显示第一个Tab
+            openTab('module1');
+        });
+    </script>
+</head>
+<body class="p-4 md:p-8">
+
+<div class="max-w-4xl mx-auto bg-white shadow-xl rounded-lg p-6">
+    <h1 class="text-3xl font-extrabold text-gray-800 border-b-4 border-blue-500 pb-3 mb-6">
+        管理决策理论与方法复习知识点 (蓝色主题)
+    </h1>
+
+    <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-200">
+        <button class="tab-button tab-active px-4 py-2 rounded-t-lg font-medium text-sm transition-colors" onclick="openTab('module1')">1. 基础与环境</button>
+        <button class="tab-button tab-inactive px-4 py-2 rounded-t-lg font-medium text-sm transition-colors" onclick="openTab('module2')">2. 确定型决策</button>
+        <button class="tab-button tab-inactive px-4 py-2 rounded-t-lg font-medium text-sm transition-colors" onclick="openTab('module3')">3. 投资项目评价</button>
+        <button class="tab-button tab-inactive px-4 py-2 rounded-t-lg font-medium text-sm transition-colors" onclick="openTab('module4')">4. 不确定性决策</button>
+        <button class="tab-button tab-inactive px-4 py-2 rounded-t-lg font-medium text-sm transition-colors" onclick="openTab('module5')">5. 风险型决策</button>
+        <button class="tab-button tab-inactive px-4 py-2 rounded-t-lg font-medium text-sm transition-colors" onclick="openTab('module6')">6. 博弈论基础</button>
+    </div>
+
+    <div id="module1" class="tab-content">
+        <h2>决策基础与环境分类</h2>
+        
+        <div class="concept border border-gray-100 p-4 rounded-lg bg-gray-50 mb-6">
+            <h3>1.决策基本要素与原则</h3>
+            <ul class="list-disc ml-6 text-gray-700 space-y-1">
+                <li>基本要素: 决策者、决策目标、决策方案、自然状态、决策结果、决策准则。</li>
+                <li>系统原则：强调整体优化，考虑各要素的相互作用，实现全局最优。</li>
+                <li>可行性原则：方案在技术、经济等方面应具备实施的可能性。</li>
+                <li>穷尽性原则：所有可能的方案或自然状态应被包含。</li>
+            </ul>
+
+            <h3 class="mt-4">2. 决策环境分类</h3>
+            <ul class="list-disc ml-6 text-gray-700 space-y-1">
+                <li>确定型决策 (Certainty)：信息完全明确，知道每种方案的确切结果。</li>
+                <li>风险型决策 (Risk)：自然状态发生概率已知（可估计）。</li>
+                <li>不确定性决策 (Uncertainty)：自然状态发生概率未知（无法估计）。</li>
+            </ul>
+
+            <h3 class="mt-4">3. 经济效益的比较原理</h3>
+            <ul class="list-disc ml-6 text-gray-700 space-y-1">
+                <li>满足需要的可比原则：数量可比、质量可比、品种的可比。</li>
+                <li>总耗费费用的可比原则：总成本可比、相关费用的可比。</li>
+                <li>价格指标的可比原则：价格本身具有可比性、价格的时期具有可比性。</li>
+                <li>时间因素的可比原则：各个方案的计算期要相同、不同时点的费用或效益要进行等值换算。</li>
+            </ul>
+        </div>
+        
+        <div class="quiz-section space-y-6">
+            
+            <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q1">
+                <p class="font-semibold text-gray-800 mb-3">【测验 1-1】一家公司在推出新产品时，知道成功率是 $60\\%$，失败率是 $40\\%$。这种决策环境属于哪一类？</p>
+                <div class="flex flex-col space-y-2">
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q1', this, 'B', '风险型决策的特征是自然状态的发生概率已知，可以通过期望值进行分析。')">A. 确定型决策</button>
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q1', this, 'B', '风险型决策的特征是自然状态的发生概率已知，可以通过期望值进行分析。')">B. 风险型决策</button>
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q1', this, 'B', '风险型决策的特征是自然状态的发生概率已知，可以通过期望值进行分析。')">C. 不确定性决策</button>
+                </div>
+                <div id="reason-q1" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+            </div>
+
+            <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q2">
+                <p class="font-semibold text-gray-800 mb-3">【测验 1-2】在决策分析的基本要素中，决策者不可控制的外部因素，如市场需求变化，被称为？</p>
+                <div class="flex flex-col space-y-2">
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q2', this, 'C', '自然状态是决策者无法控制的客观因素，会影响决策结果，是决策分析的关键要素。')">A. 决策方案</button>
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q2', this, 'C', '自然状态是决策者无法控制的客观因素，会影响决策结果，是决策分析的关键要素。')">B. 决策目标</button>
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q2', this, 'C', '自然状态是决策者无法控制的客观因素，会影响决策结果，是决策分析的关键要素。')">C. 自然状态</button>
+                </div>
+                <div id="reason-q2" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+            </div>
+
+            <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q3">
+                <p class="font-semibold text-gray-800 mb-3">【测验 1-3】某投资决策强调必须将备选方案对整个供应链的影响考虑在内，这主要遵循了哪个原则？</p>
+                <div class="flex flex-col space-y-2">
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q3', this, 'B', '系统原则要求决策者具有全局观，应从整体最优的角度出发，充分考虑各个子系统和要素间的相互作用。')">A. 可行性原则</button>
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q3', this, 'B', '系统原则要求决策者具有全局观，应从整体最优的角度出发，充分考虑各个子系统和要素间的相互作用。')">B. 系统原则</button>
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q3', this, 'B', '系统原则要求决策者具有全局观，应从整体最优的角度出发，充分考虑各个子系统和要素间的相互作用。')">C. 穷尽性原则</button>
+                </div>
+                <div id="reason-q3" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+            </div>
+
+        </div>
+    </div>
+    
+    <div id="module2" class="tab-content hidden">
+        <h2>确定型决策分析</h2>
+
+        <div class="concept border border-gray-100 p-4 rounded-lg bg-gray-50 mb-6">
+            <h3>1. 资金时间价值</h3>
+            <ul class="list-disc ml-6 text-gray-700 space-y-1">
+                <li>单利与复利：复利计算的关键是利息的再投资，即对先前计息周期累计的利息也计算利息。</li>
+                <li>实际利率：名义利率一定时，计息周期越短（如按月计息），复利效应越明显，实际利率越大。</li>
+            </ul>
+
+            <h3 class="mt-4">2. 盈亏平衡分析 (BEP)</h3>
+            <ul class="list-disc ml-6 text-gray-700 space-y-1">
+                <li>盈亏平衡点：总收入等于总成本，利润为零。BEP越高，企业经营风险越大。</li>
+                <li>单位贡献利润 ($M$)：$M = P - V$ (P: 售价, V: 单位变动成本)。</li>
+                <li>盈亏平衡点产量 ($Q_{BEP}$): 
+                    $$\\ Q_{BEP} = \\frac{F}{P - V} = \\frac{\\text{总固定成本}}{\\text{单位贡献利润}}$$ 
+                    (F: 总固定成本)
+                </li>
+                <li>目标利润产量 ($Q_{Target}$): $Q_{Target} = \\frac{F + \\text{目标利润}}{P - V}$。</li>
+            </ul>
+        </div>
+
+        <div class="quiz-section space-y-6">
+
+            <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q4">
+                <p class="font-semibold text-gray-800 mb-3">【测验 2-1】某产品固定成本 $60,000$ 元，单位变动成本 $25$ 元，单件售价 $55$ 元。该产品的盈亏平衡点产量是多少件？</p>
+                <div class="flex flex-col space-y-2">
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q4', this, 'B', '单位贡献毛益为 $55 - 25 = 30$ 元。 $Q_{BEP} = 60000 / 30 = 2000$ 件。')">A. $1,500$ 件</button>
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q4', this, 'B', '单位贡献毛益为 $55 - 25 = 30$ 元。 $Q_{BEP} = 60000 / 30 = 2000$ 件。')">B. $2,000$ 件</button>
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q4', this, 'B', '单位贡献毛益为 $55 - 25 = 30$ 元。 $Q_{BEP} = 60000 / 30 = 2000$ 件。')">C. $2,400$ 件</button>
+                </div>
+                <div id="reason-q4" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+            </div>
+
+            <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q5">
+                <p class="font-semibold text-gray-800 mb-3">【测验 2-2】在名义年利率不变的情况下，若计息周期从按年改为按月，则实际利率会如何变化？</p>
+                <div class="flex flex-col space-y-2">
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q5', this, 'B', '计息周期越短，复利效应越明显，实际年收益率会变大。')">A. 变小</button>
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q5', this, 'B', '计息周期越短，复利效应越明显，实际年收益率会变大。')">B. 变大</button>
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q5', this, 'B', '计息周期越短，复利效应越明显，实际年收益率会变大。')">C. 保持不变</button>
+                </div>
+                <div id="reason-q5" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+            </div>
+
+            <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q6">
+                <p class="font-semibold text-gray-800 mb-3">【测验 2-3】在企业经营分析中，盈亏平衡点 ($Q_{BEP}$) 越高，通常意味着该企业面临的经营风险：</p>
+                <div class="flex flex-col space-y-2">
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q6', this, 'B', 'BEP 高意味着必须达到更高的销量才能开始盈利，需要更高的销量来覆盖成本，因此经营风险越高。')">A. 越低，因为利润增长越快</button>
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q6', this, 'B', 'BEP 高意味着必须达到更高的销量才能开始盈利，需要更高的销量来覆盖成本，因此经营风险越高。')">B. 越高，因为需要更高的销量才能实现盈利</button>
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q6', this, 'B', 'BEP 高意味着必须达到更高的销量才能开始盈利，需要更高的销量来覆盖成本，因此经营风险越高。')">C. 保持不变</button>
+                </div>
+                <div id="reason-q6" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+            </div>
+            
+            <div class="mt-6">
+    <h3 class="text-xl font-bold text-gray-700 mb-3 flex items-center gap-2">
+        <i class="ph ph-chart-line text-2xl"></i> 计算题2-1：盈亏平衡分析 ($Q_{BEP}$, $Q_{Target}$)
+    </h3>
+    
+    <div class="bg-white border border-blue-300 rounded-lg shadow-md mb-4">
+        <button 
+            class="w-full text-left p-4 flex justify-between items-center font-semibold text-gray-800 hover:bg-blue-50 transition-colors"
+            onclick="toggleAnswer('calc-qa-1-1')">
+            <span>❓ 问题：某面包店售价8元/块，单位变动成本3元/块，每月固定成本6000元。请计算 (1) 盈亏平衡点销售量；(2) 实现3000元目标利润所需销售量。</span>
+            <i class="ph ph-caret-down text-lg"></i>
+        </button>
+        
+        <div id="calc-qa-1-1" class="hidden p-4 pt-0 border-t border-blue-200">
+            <div class="bg-blue-50 p-3 rounded-md text-sm text-blue-800">
+                <strong>✔ 答案与解析 (BEP)</strong>
+                
+                <p class="mt-2 mb-1"><strong>已知条件：</strong> $P=8$ 元，$V=3$ 元，$F=6000$ 元。</p>
+                <p class="mb-1">单位贡献利润 $(P-V) = 8 - 3 = 5$ 元。</p>
+
+                <p class="mt-2 mb-1"><strong>(1) 盈亏平衡点销售量 ($Q_{BEP}$) 计算 (2分)：</strong></p>
+                $$
+                Q_{BEP} = \frac{F}{P - V} = \frac{6000}{5} = 1200 \text{ 块}
+                $$
+                
+                <p class="mt-2 mb-1"><strong>(2) 目标利润销售量 ($Q_{Target}$) 计算 (3分)：</strong></p>
+                $$
+                Q_{Target} = \frac{F + \text{目标利润}}{P - V} = \frac{6000 + 3000}{5} = \frac{9000}{5} = 1800 \text{ 块}
+                $$
+                
+                <p class="mt-2"><strong>最终答案：(1) 1200 块；(2) 1800 块。</strong></p>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="mt-6">
+            <h3 class="text-xl font-bold text-gray-700 mb-3 flex items-center gap-2">
+                <i class="ph ph-chart-line text-2xl"></i> 计算题2-2：盈亏平衡销售额 ($S_{BEP}$)
+            </h3>
+            
+            <div class="bg-white border border-blue-300 rounded-lg shadow-md mb-4">
+                <button 
+                    class="w-full text-left p-4 flex justify-between items-center font-semibold text-gray-800 hover:bg-blue-50 transition-colors"
+                    onclick="toggleAnswer('calc-qa-2-1')">
+                    <span>❓ 问：某产品固定成本 $F=120,000$ 元，单位变动成本 $V=40$ 元，单件售价 $P=100$ 元。请计算该产品的盈亏平衡销售额 $S_{BEP}$（单位：元）。</span>
+                    <i class="ph ph-caret-down text-lg"></i>
+                </button>
+                
+                <div id="calc-qa-2-1" class="hidden p-4 pt-0 border-t border-blue-200">
+                    <div class="bg-blue-50 p-3 rounded-md text-sm text-blue-800">
+                        <strong>✔ 答案与解析 (请自行计算后再展开)</strong>
+                        
+                        <p class="mt-2 mb-1">该题考察盈亏平衡销售额 $S_{BEP}$ 的计算，公式为：</p>
+                        
+                        $$
+                        S_{BEP} = \frac{F}{1 - V/P}
+                        $$
+                        <p>其中，$F = 120,000$ (元)，$V = 40$ (元/件)，$P = 100$ (元/件)。</p>
+                        
+                        <p>代入数据计算：</p>
+                        $$
+                        S_{BEP} = \frac{120,000}{1 - 40/100} = \frac{120,000}{1 - 0.4} = \frac{120,000}{0.6}
+                        $$
+                        
+                        <p>最终结果：</p>
+                        $$
+                        S_{BEP} = 200,000 \text{ 元}
+                        $$
+                        
+                        <p class="mt-2"><strong>最终答案：$200,000$ 元。</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <div id="module3" class="tab-content hidden">
+        <h2>投资项目评价指标</h2>
+
+        <div class="concept border border-gray-100 p-4 rounded-lg bg-gray-50 mb-6">
+            <h3>1. 投资决策核心准则</h3>
+            <ul class="list-disc ml-6 text-gray-700 space-y-1">
+                <li>净现值 ($NPV$)：衡量项目对企业财富的净贡献。$NPV > 0$ 则项目可行。</li>
+                <li>内部收益率 ($IRR$)：使项目 $NPV=0$ 时的折现率。$IRR > \text{基准收益率}$ 则项目可行。</li>
+            </ul>
+
+            <h3 class="mt-4">2. 互斥方案比选</h3>
+            <ul class="list-disc ml-6 text-gray-700 space-y-1">
+                <li>NPV与IRR冲突：在互斥方案中，当 $NPV$ 与 $IRR$ 结论冲突时，应以 $NPV$ 准则优先（选择 $NPV$ 最大的项目）。</li>
+                <li>寿命期不同：寿命期不同的互斥方案，应采用净年值 ($NAV$/$ANPV$) 进行比较，将收益转化为可比的年度平均价值。</li>
+            </ul>
+        </div>
+        
+        <div class="quiz-section space-y-6">
+
+            <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q7">
+                <p class="font-semibold text-gray-800 mb-3">【测验 3-1】在比较两个寿命期分别为 $5$ 年和 $10$ 年的互斥投资项目时，最恰当的评价指标是：</p>
+                <div class="flex flex-col space-y-2">
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q7', this, 'C', '净年值（NAV）可以将不同寿命期的项目转化为可比的年度净财富增值，是解决该问题的最佳方法。')">A. 内部收益率 ($IRR$)</button>
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q7', this, 'C', '净年值（NAV）可以将不同寿命期的项目转化为可比的年度净财富增值，是解决该问题的最佳方法。')">B. 净现值 ($NPV$)</button>
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q7', this, 'C', '净年值（NAV）可以将不同寿命期的项目转化为可比的年度净财富增值，是解决该问题的最佳方法。')">C. 净年值 ($NAV$) 或共同最小公倍数法</button>
+                </div>
+                <div id="reason-q7" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+            </div>
+
+            <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q8">
+                <p class="font-semibold text-gray-800 mb-3">【测验 3-2】方案甲的 $NPV$ 高于方案乙，但方案乙的 $IRR$ 高于方案甲。在互斥选择中，应选择哪个方案？</p>
+                <div class="flex flex-col space-y-2">
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q8', this, 'A', '在互斥方案冲突时，应以净现值（NPV）准则优先，因为它衡量的是项目对企业财富的净贡献。')">A. 方案甲</button>
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q8', this, 'A', '在互斥方案冲突时，应以净现值（NPV）准则优先，因为它衡量的是项目对企业财富的净贡献。')">B. 方案乙</button>
+                    <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q8', this, 'A', '在互斥方案冲突时，应以净现值（NPV）准则优先，因为它衡量的是项目对企业财富的净贡献。')">C. 投资回收期最短的方案</button>
+                </div>
+                <div id="reason-q8" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+            </div>
+            
+        </div>
+        <div class="mt-6">
+            <h3 class="text-xl font-bold text-gray-700 mb-3 flex items-center gap-2">
+                <i class="ph ph-wallet text-2xl"></i> 计算题 3-1：净现值 (NPV)
+            </h3>
+            
+            <div class="bg-white border border-blue-300 rounded-lg shadow-md mb-4">
+                <button 
+                    class="w-full text-left p-4 flex justify-between items-center font-semibold text-gray-800 hover:bg-blue-50 transition-colors"
+                    onclick="toggleAnswer('calc-qa-3-1')">
+                    <span>❓ 问：某项目初始投资 $I_0 = 100,000$ 元，寿命期 3 年。未来 3 年的预期净现金流量分别为 $CF_1=40,000$、$CF_2=50,000$、$CF_3=60,000$ 元。若基准折现率 $i=10\%$。请计算该项目的净现值 (NPV)。</span>
+                    <i class="ph ph-caret-down text-lg"></i>
+                </button>
+                
+                <div id="calc-qa-3-1" class="hidden p-4 pt-0 border-t border-blue-200">
+                    <div class="bg-blue-50 p-3 rounded-md text-sm text-blue-800">
+                        <strong>✔ 答案与解析 (请自行计算后再展开)</strong>
+                        
+                        <p class="mt-2 mb-1">该题考察净现值 (NPV) 的计算，公式为：</p>
+                        
+                        $$
+                        NPV = -I_0 + \sum_{t=1}^{n} \frac{CF_t}{(1+i)^t}
+                        $$
+                        <p>代入数据计算：</p>
+                        $$
+                        NPV = -100,000 + \frac{40,000}{(1+0.1)^1} + \frac{50,000}{(1+0.1)^2} + \frac{60,000}{(1+0.1)^3}
+                        $$
+                        $$
+                        NPV \approx -100,000 + 36,363.64 + 41,322.31 + 45,078.89
+                        $$
+                        $$
+                        NPV \approx 22,764.84 \text{ 元}
+                        $$
+                        
+                        <p class="mt-2"><strong>最终答案：$22,764.84$ 元。因 $NPV > 0$，故该项目在经济上可行。</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <div id="module4" class="tab-content hidden">
+    <h2>不确定性决策分析</h2>
+
+    <div class="concept border border-gray-100 p-4 rounded-lg bg-gray-50 mb-6">
+        <h3>1. 决策特征与收益矩阵准则</h3>
+        <ul class="list-disc ml-6 text-gray-700 space-y-1">
+            <li>决策特征：自然状态的发生概率未知，无法估计。</li>
+            <li>乐观准则 ($Maximax$)：大中取大。选择在最好情况下收益最大的方案。代表风险偏好型态度。</li>
+            <li>悲观准则 ($Maximin$)：小中取大。选择在最坏情况下收益最大的方案。代表风险规避型态度。</li>
+            <li>等概率准则 ($Laplace$)：假设所有自然状态的出现概率相等，选择期望收益最大的方案。中立型。</li>
+        </ul>
+
+        <h3 class="mt-4">2. 后悔矩阵准则</h3>
+        <ul class="list-disc ml-6 text-gray-700 space-y-1">
+            <li>后悔值：同一自然状态下，最优方案收益与其他方案收益的差额（机会损失）。</li>
+            <li>后悔值准则：选择使最大后悔值最小的方案（最小最大后悔值）。代表风险规避型态度。</li>
+        </ul>
+    </div>
+
+    <div class="mt-6">
+        <h3 class="text-xl font-bold text-gray-700 mb-3 flex items-center gap-2">
+            <i class="ph ph-infinity text-2xl"></i> 计算题：不确定性决策（四准则）
+        </h3>
+        
+        <div class="bg-white border border-blue-300 rounded-lg shadow-md mb-4">
+            <button 
+                class="w-full text-left p-4 flex justify-between items-center font-semibold text-gray-800 hover:bg-blue-50 transition-colors"
+                onclick="toggleAnswer('calc-qa-4-1')">
+                <span>❓ 问题：服装采购决策（不确定性），建立收益矩阵，并用乐观、悲观、等概率和后悔值准则决策。</span>
+                <i class="ph ph-caret-down text-lg"></i>
+            </button>
+            
+            <div id="calc-qa-4-1" class="hidden p-4 pt-0 border-t border-blue-200">
+                <div class="bg-blue-50 p-3 rounded-md text-sm text-blue-800">
+                    <strong>✔ 答案与解析</strong>
+                    
+                    <p class="mt-2 mb-1"><strong>(1) 收益矩阵建立 (3分)：</strong></p>
+                    <p class="mb-1">公式：利润 = 售出利润 - 积压损失。</p>
+                    
+                    <div class="overflow-x-auto my-2">
+                        <table class="min-w-full text-xs text-left text-gray-600 border border-gray-300">
+                            <thead class="text-gray-700 uppercase bg-gray-100">
+                                <tr>
+                                    <th class="px-3 py-2 border">采购量 ($Q_{\text{采}}$)</th>
+                                    <th class="px-3 py-2 border">销量=80</th>
+                                    <th class="px-3 py-2 border">销量=120</th>
+                                    <th class="px-3 py-2 border">销量=160</th>
+                                    <th class="px-3 py-2 border">销量=200</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-white border-b">
+                                    <td class="px-3 py-2 border">80</td>
+                                    <td class="px-3 py-2 border">4800</td>
+                                    <td class="px-3 py-2 border">4800</td>
+                                    <td class="px-3 py-2 border">4800</td>
+                                    <td class="px-3 py-2 border">4800</td>
+                                </tr>
+                                <tr class="bg-gray-50 border-b">
+                                    <td class="px-3 py-2 border">120</td>
+                                    <td class="px-3 py-2 border">4400</td>
+                                    <td class="px-3 py-2 border">7200</td>
+                                    <td class="px-3 py-2 border">7200</td>
+                                    <td class="px-3 py-2 border">7200</td>
+                                </tr>
+                                <tr class="bg-white border-b">
+                                    <td class="px-3 py-2 border">160</td>
+                                    <td class="px-3 py-2 border">4000</td>
+                                    <td class="px-3 py-2 border">6800</td>
+                                    <td class="px-3 py-2 border">9600</td>
+                                    <td class="px-3 py-2 border">9600</td>
+                                </tr>
+                                <tr class="bg-gray-50">
+                                    <td class="px-3 py-2 border">200</td>
+                                    <td class="px-3 py-2 border">3600</td>
+                                    <td class="px-3 py-2 border">6400</td>
+                                    <td class="px-3 py-2 border">9200</td>
+                                    <td class="px-3 py-2 border">12000</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p class="mt-2 mb-1"><strong>(2) 多准则决策 (4分)：</strong></p>
+                    <ul class="list-disc pl-5">
+                        <li>**乐观准则 (Maximax)**：最大收益 Max(4800, 7200, 9600, 12000)。选择**采购 200 件**。</li>
+                        <li>**悲观准则 (Maximin)**：最小收益 Max(4800, 4400, 4000, 3600)。选择**采购 80 件**。</li>
+                        <li>**等概率法 (Laplace)**：平均收益 Max(4800, 6650, 7350, 7800)。选择**采购 200 件**（平均收益7800）。</li>
+                    </ul>
+                    
+                    <p class="mt-2 mb-1"><strong>(3) 后悔值准则决策 (3分)：</strong></p>
+                    <p class="mb-1">后悔矩阵（机会损失）：</p>
+                    <div class="overflow-x-auto my-2">
+                        <table class="min-w-full text-xs text-left text-gray-600 border border-gray-300">
+                            <thead class="text-gray-700 uppercase bg-gray-100">
+                                <tr>
+                                    <th class="px-3 py-2 border">采购量</th>
+                                    <th class="px-3 py-2 border">销量=80</th>
+                                    <th class="px-3 py-2 border">销量=120</th>
+                                    <th class="px-3 py-2 border">销量=160</th>
+                                    <th class="px-3 py-2 border">销量=200</th>
+                                    <th class="px-3 py-2 border font-bold">Max 后悔值</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-white border-b">
+                                    <td class="px-3 py-2 border">80</td>
+                                    <td class="px-3 py-2 border">0</td>
+                                    <td class="px-3 py-2 border">2400</td>
+                                    <td class="px-3 py-2 border">4800</td>
+                                    <td class="px-3 py-2 border">7200</td>
+                                    <td class="px-3 py-2 border font-bold">7200</td>
+                                </tr>
+                                <tr class="bg-gray-50 border-b">
+                                    <td class="px-3 py-2 border">120</td>
+                                    <td class="px-3 py-2 border">400</td>
+                                    <td class="px-3 py-2 border">0</td>
+                                    <td class="px-3 py-2 border">2400</td>
+                                    <td class="px-3 py-2 border">4800</td>
+                                    <td class="px-3 py-2 border font-bold">4800</td>
+                                </tr>
+                                <tr class="bg-white border-b">
+                                    <td class="px-3 py-2 border">160</td>
+                                    <td class="px-3 py-2 border">800</td>
+                                    <td class="px-3 py-2 border">400</td>
+                                    <td class="px-3 py-2 border">0</td>
+                                    <td class="px-3 py-2 border">2400</td>
+                                    <td class="px-3 py-2 border font-bold">2400</td>
+                                </tr>
+                                <tr class="bg-gray-50">
+                                    <td class="px-3 py-2 border">200</td>
+                                    <td class="px-3 py-2 border">1200</td>
+                                    <td class="px-3 py-2 border">800</td>
+                                    <td class="px-3 py-2 border">400</td>
+                                    <td class="px-3 py-2 border">0</td>
+                                    <td class="px-3 py-2 border font-bold">1200</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="mb-1">最小最大后悔值 $\min(7200, 4800, 2400, 1200) = 1200$。</p>
+                    <p class="font-bold">最终结论：后悔值准则选择采购 200 件。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="quiz-section space-y-6">
+
+        <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q9">
+            <p class="font-semibold text-gray-800 mb-3">【测验 4-1】哪种准则反映了决策者愿意承担较大风险，追求在最理想结果下的最大回报？</p>
+            <div class="flex flex-col space-y-2">
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q9', this, 'B', '乐观准则的核心是最大化最大收益，代表了一种对最好结果的追求，是风险偏好型的体现。')">A. 悲观准则 ($Maximin$)</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q9', this, 'B', '乐观准则的核心是最大化最大收益，代表了一种对最好结果的追求，是风险偏好型的体现。')">B. 乐观准则 ($Maximax$)</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q9', this, 'B', '乐观准则的核心是最大化最大收益，代表了一种对最好结果的追求，是风险偏好型的体现。')">C. 后悔值准则</button>
+            </div>
+            <div id="reason-q9" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+        </div>
+
+        <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q10">
+            <p class="font-semibold text-gray-800 mb-3">【测验 4-2】悲观准则（$Maximin$）的决策者会选择：</p>
+            <div class="flex flex-col space-y-2">
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q10', this, 'C', '悲观准则首先考虑每种方案的最低收益（最坏情况），然后在这些最低收益中选择最大的一个，体现了风险规避。')">A. 最大后悔值最小的方案</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q10', this, 'C', '悲观准则首先考虑每种方案的最低收益（最坏情况），然后在这些最低收益中选择最大的一个，体现了风险规避。')">B. 在最好情况下收益最大的方案</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q10', this, 'C', '悲观准则首先考虑每种方案的最低收益（最坏情况），然后在这些最低收益中选择最大的一个，体现了风险规避。')">C. 在最坏情况下收益最大的方案</button>
+            </div>
+            <div id="reason-q10" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+        </div>
+
+        <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q11">
+            <p class="font-semibold text-gray-800 mb-3">【测验 4-3】等概率准则（$Laplace$）在不确定性决策中是如何处理自然状态概率的？</p>
+            <div class="flex flex-col space-y-2">
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q11', this, 'B', '等概率准则假设所有概率是相等的，然后计算每种方案的期望收益。')">A. 根据历史数据进行主观估计</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q11', this, 'B', '等概率准则假设所有概率是相等的，然后计算每种方案的期望收益。')">B. 认为所有自然状态的出现概率相等</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q11', this, 'B', '等概率准则假设所有概率是相等的，然后计算每种方案的期望收益。')">C. 只考虑最可能出现的自然状态的收益</button>
+            </div>
+            <div id="reason-q11" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+        </div>
+
+    </div>
+</div>
+    
+    <div id="module4" class="tab-content hidden">
+    <h2>不确定性决策分析</h2>
+
+    <div class="concept border border-gray-100 p-4 rounded-lg bg-gray-50 mb-6">
+        <h3>1. 决策特征与收益矩阵准则</h3>
+        <ul class="list-disc ml-6 text-gray-700 space-y-1">
+            <li>决策特征：自然状态的发生概率未知，无法估计。</li>
+            <li>乐观准则 ($Maximax$)：大中取大。选择在最好情况下收益最大的方案。代表风险偏好型态度。</li>
+            <li>悲观准则 ($Maximin$)：小中取大。选择在最坏情况下收益最大的方案。代表风险规避型态度。</li>
+            <li>等概率准则 ($Laplace$)：假设所有自然状态的出现概率相等，选择期望收益最大的方案。中立型。</li>
+        </ul>
+
+        <h3 class="mt-4">2. 后悔矩阵准则</h3>
+        <ul class="list-disc ml-6 text-gray-700 space-y-1">
+            <li>后悔值：同一自然状态下，最优方案收益与其他方案收益的差额（机会损失）。</li>
+            <li>后悔值准则：选择使最大后悔值最小的方案（最小最大后悔值）。代表风险规避型态度。</li>
+        </ul>
+    </div>
+
+    <div class="mt-6">
+        <h3 class="text-xl font-bold text-gray-700 mb-3 flex items-center gap-2">
+            <i class="ph ph-infinity text-2xl"></i> 题目 4：不确定性决策（四准则） (10分)
+        </h3>
+        
+        <div class="bg-white border border-blue-300 rounded-lg shadow-md mb-4">
+            <button 
+                class="w-full text-left p-4 flex justify-between items-center font-semibold text-gray-800 hover:bg-blue-50 transition-colors"
+                onclick="toggleAnswer('calc-qa-4-1')">
+                <span>❓ 问题：服装采购决策（不确定性），建立收益矩阵，并用乐观、悲观、等概率和后悔值准则决策。</span>
+                <i class="ph ph-caret-down text-lg"></i>
+            </button>
+            
+            <div id="calc-qa-4-1" class="hidden p-4 pt-0 border-t border-blue-200">
+                <div class="bg-blue-50 p-3 rounded-md text-sm text-blue-800">
+                    <strong>✔ 答案与解析</strong>
+                    
+                    <p class="mt-2 mb-1"><strong>(1) 收益矩阵建立 (3分)：</strong></p>
+                    <p class="mb-1">公式：利润 = 售出利润 - 积压损失。</p>
+                    
+                    <div class="overflow-x-auto my-2">
+                        <table class="min-w-full text-xs text-left text-gray-600 border border-gray-300">
+                            <thead class="text-gray-700 uppercase bg-gray-100">
+                                <tr>
+                                    <th class="px-3 py-2 border">采购量 ($Q_{\text{采}}$)</th>
+                                    <th class="px-3 py-2 border">销量=80</th>
+                                    <th class="px-3 py-2 border">销量=120</th>
+                                    <th class="px-3 py-2 border">销量=160</th>
+                                    <th class="px-3 py-2 border">销量=200</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-white border-b">
+                                    <td class="px-3 py-2 border">80</td>
+                                    <td class="px-3 py-2 border">4800</td>
+                                    <td class="px-3 py-2 border">4800</td>
+                                    <td class="px-3 py-2 border">4800</td>
+                                    <td class="px-3 py-2 border">4800</td>
+                                </tr>
+                                <tr class="bg-gray-50 border-b">
+                                    <td class="px-3 py-2 border">120</td>
+                                    <td class="px-3 py-2 border">4400</td>
+                                    <td class="px-3 py-2 border">7200</td>
+                                    <td class="px-3 py-2 border">7200</td>
+                                    <td class="px-3 py-2 border">7200</td>
+                                </tr>
+                                <tr class="bg-white border-b">
+                                    <td class="px-3 py-2 border">160</td>
+                                    <td class="px-3 py-2 border">4000</td>
+                                    <td class="px-3 py-2 border">6800</td>
+                                    <td class="px-3 py-2 border">9600</td>
+                                    <td class="px-3 py-2 border">9600</td>
+                                </tr>
+                                <tr class="bg-gray-50">
+                                    <td class="px-3 py-2 border">200</td>
+                                    <td class="px-3 py-2 border">3600</td>
+                                    <td class="px-3 py-2 border">6400</td>
+                                    <td class="px-3 py-2 border">9200</td>
+                                    <td class="px-3 py-2 border">12000</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p class="mt-2 mb-1"><strong>(2) 多准则决策 (4分)：</strong></p>
+                    <ul class="list-disc pl-5">
+                        <li>**乐观准则 (Maximax)**：最大收益 Max(4800, 7200, 9600, 12000)。选择**采购 200 件**。</li>
+                        <li>**悲观准则 (Maximin)**：最小收益 Max(4800, 4400, 4000, 3600)。选择**采购 80 件**。</li>
+                        <li>**等概率法 (Laplace)**：平均收益 Max(4800, 6650, 7350, 7800)。选择**采购 200 件**（平均收益7800）。</li>
+                    </ul>
+                    
+                    <p class="mt-2 mb-1"><strong>(3) 后悔值准则决策 (3分)：</strong></p>
+                    <p class="mb-1">后悔矩阵（机会损失）：</p>
+                    <div class="overflow-x-auto my-2">
+                        <table class="min-w-full text-xs text-left text-gray-600 border border-gray-300">
+                            <thead class="text-gray-700 uppercase bg-gray-100">
+                                <tr>
+                                    <th class="px-3 py-2 border">采购量</th>
+                                    <th class="px-3 py-2 border">销量=80</th>
+                                    <th class="px-3 py-2 border">销量=120</th>
+                                    <th class="px-3 py-2 border">销量=160</th>
+                                    <th class="px-3 py-2 border">销量=200</th>
+                                    <th class="px-3 py-2 border font-bold">Max 后悔值</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-white border-b">
+                                    <td class="px-3 py-2 border">80</td>
+                                    <td class="px-3 py-2 border">0</td>
+                                    <td class="px-3 py-2 border">2400</td>
+                                    <td class="px-3 py-2 border">4800</td>
+                                    <td class="px-3 py-2 border">7200</td>
+                                    <td class="px-3 py-2 border font-bold">7200</td>
+                                </tr>
+                                <tr class="bg-gray-50 border-b">
+                                    <td class="px-3 py-2 border">120</td>
+                                    <td class="px-3 py-2 border">400</td>
+                                    <td class="px-3 py-2 border">0</td>
+                                    <td class="px-3 py-2 border">2400</td>
+                                    <td class="px-3 py-2 border">4800</td>
+                                    <td class="px-3 py-2 border font-bold">4800</td>
+                                </tr>
+                                <tr class="bg-white border-b">
+                                    <td class="px-3 py-2 border">160</td>
+                                    <td class="px-3 py-2 border">800</td>
+                                    <td class="px-3 py-2 border">400</td>
+                                    <td class="px-3 py-2 border">0</td>
+                                    <td class="px-3 py-2 border">2400</td>
+                                    <td class="px-3 py-2 border font-bold">2400</td>
+                                </tr>
+                                <tr class="bg-gray-50">
+                                    <td class="px-3 py-2 border">200</td>
+                                    <td class="px-3 py-2 border">1200</td>
+                                    <td class="px-3 py-2 border">800</td>
+                                    <td class="px-3 py-2 border">400</td>
+                                    <td class="px-3 py-2 border">0</td>
+                                    <td class="px-3 py-2 border font-bold">1200</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="mb-1">最小最大后悔值 $\min(7200, 4800, 2400, 1200) = 1200$。</p>
+                    <p class="font-bold">最终结论：后悔值准则选择采购 200 件。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="quiz-section space-y-6">
+
+        <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q9">
+            <p class="font-semibold text-gray-800 mb-3">【测验 4-1】哪种准则反映了决策者愿意承担较大风险，追求在最理想结果下的最大回报？</p>
+            <div class="flex flex-col space-y-2">
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q9', this, 'B', '乐观准则的核心是最大化最大收益，代表了一种对最好结果的追求，是风险偏好型的体现。')">A. 悲观准则 ($Maximin$)</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q9', this, 'B', '乐观准则的核心是最大化最大收益，代表了一种对最好结果的追求，是风险偏好型的体现。')">B. 乐观准则 ($Maximax$)</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q9', this, 'B', '乐观准则的核心是最大化最大收益，代表了一种对最好结果的追求，是风险偏好型的体现。')">C. 后悔值准则</button>
+            </div>
+            <div id="reason-q9" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+        </div>
+
+        <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q10">
+            <p class="font-semibold text-gray-800 mb-3">【测验 4-2】悲观准则（$Maximin$）的决策者会选择：</p>
+            <div class="flex flex-col space-y-2">
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q10', this, 'C', '悲观准则首先考虑每种方案的最低收益（最坏情况），然后在这些最低收益中选择最大的一个，体现了风险规避。')">A. 最大后悔值最小的方案</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q10', this, 'C', '悲观准则首先考虑每种方案的最低收益（最坏情况），然后在这些最低收益中选择最大的一个，体现了风险规避。')">B. 在最好情况下收益最大的方案</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q10', this, 'C', '悲观准则首先考虑每种方案的最低收益（最坏情况），然后在这些最低收益中选择最大的一个，体现了风险规避。')">C. 在最坏情况下收益最大的方案</button>
+            </div>
+            <div id="reason-q10" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+        </div>
+
+        <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q11">
+            <p class="font-semibold text-gray-800 mb-3">【测验 4-3】等概率准则（$Laplace$）在不确定性决策中是如何处理自然状态概率的？</p>
+            <div class="flex flex-col space-y-2">
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q11', this, 'B', '等概率准则假设所有概率是相等的，然后计算每种方案的期望收益。')">A. 根据历史数据进行主观估计</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q11', this, 'B', '等概率准则假设所有概率是相等的，然后计算每种方案的期望收益。')">B. 认为所有自然状态的出现概率相等</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q11', this, 'B', '等概率准则假设所有概率是相等的，然后计算每种方案的期望收益。')">C. 只考虑最可能出现的自然状态的收益</button>
+            </div>
+            <div id="reason-q11" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+        </div>
+
+    </div>
+</div>
+<div id="module5" class="tab-content hidden">
+    <h2>风险型决策与信息价值</h2>
+
+    <div class="concept border border-gray-100 p-4 rounded-lg bg-gray-50 mb-6">
+        <h3>1. 期望值准则</h3>
+        <ul class="list-disc ml-6 text-gray-700 space-y-1">
+            <li>适用环境：风险性环境（概率已知）。</li>
+            <li>决策目标：选择最大期望收益 ($EMV$) 的方案。该准则不考虑决策者的风险态度。</li>
+        </ul>
+
+        <h3 class="mt-4">2. 决策树法</h3>
+        <ul class="list-disc ml-6 text-gray-700 space-y-1">
+            <li>用途：分析多阶段风险决策问题。</li>
+            <li>节点：矩形节点（决策点/行动方案），圆形节点（状态/概率点）。</li>
+            <li>分析方法：采用逆推法（从右向左）计算期望值，在矩形节点进行修枝选优。</li>
+        </ul>
+
+        <h3 class="mt-4">3. 完全情报价值 ($EVPI$)</h3>
+        <ul class="list-disc ml-6 text-gray-700 space-y-1">
+            <li>用途：衡量购买完整、准确信息是否值得。</li>
+            <li>公式：$EVPI = EPI - EMV_{\text{max}}$（$\text{EPI}$：完全信息期望收益；$\text{EMV}_{\text{max}}$：最大期望货币值）。</li>
+        </ul>
+    </div>
+    
+    <div class="mt-6">
+        <h3 class="text-xl font-bold text-gray-700 mb-3 flex items-center gap-2">
+            <i class="ph ph-tree-structure text-2xl"></i> 题目 3：期望值、决策树与信息价值 (15分)
+        </h3>
+        
+        <div class="bg-white border border-blue-300 rounded-lg shadow-md mb-4">
+            <button 
+                class="w-full text-left p-4 flex justify-between items-center font-semibold text-gray-800 hover:bg-blue-50 transition-colors"
+                onclick="toggleAnswer('calc-qa-3-1')">
+                <span>❓ 问题：安泰公司监护仪项目（投资额、年收益、概率已知）。计算总期望净收益、绘制决策树，并计算最大信息价值。</span>
+                <i class="ph ph-caret-down text-lg"></i>
+            </button>
+            
+            <div id="calc-qa-3-1" class="hidden p-4 pt-0 border-t border-blue-200">
+                <div class="bg-blue-50 p-3 rounded-md text-sm text-blue-800">
+                    <strong>✔ 答案与解析</strong>
+                    
+                    <p class="mt-2 mb-1"><strong>(1) 计算总期望净收益 ($EMV$) (4分)：</strong></p>
+                    <p class="mb-1">收益期 $n=4$ 年。</p>
+                    
+                    $$
+                    \text{E}(\text{年收益}_{\text{新厂}}) = 250(0.3) + 120(0.5) - 50(0.2) = 125 \text{ 万元/年}
+                    $$
+                    $$
+                    EMV_{\text{新厂}} = 4 \times 125 - 300 = 200 \text{ 万元}
+                    $$
+                    
+                    $$
+                    \text{E}(\text{年收益}_{\text{租赁}}) = 130(0.3) + 80(0.5) + 30(0.2) = 85 \text{ 万元/年}
+                    $$
+                    $$
+                    EMV_{\text{租赁}} = 4 \times 85 - 100 = 240 \text{ 万元}
+                    $$
+
+                    <p class="mt-2 mb-1"><strong>(2) 绘制决策树结构图 (4分)：</strong>  (图略，需包含决策点、概率点、净收益终点)</p>
+                    
+                    <p class="mt-2 mb-1"><strong>(3) 确定最优投资方案 (2分)：</strong></p>
+                    <p class="mb-1">因 $EMV_{\text{租赁}} (240 \text{ 万元}) > EMV_{\text{新厂}} (200 \text{ 万元})$。</p>
+                    <p class="font-bold">最优方案：选择租赁生产。</p>
+
+                    <p class="mt-2 mb-1"><strong>(4) 计算最大信息价值 ($EVPI$) (5分)：</strong></p>
+                    <p class="mb-1">计算完全信息期望收益 ($EPI$): 每年在已知需求下选择最优方案。</p>
+                    <ul class="list-disc pl-5">
+                        <li>旺盛（0.3）：新厂 (250) > 租赁 (130)。选新厂。</li>
+                        <li>正常（0.5）：新厂 (120) > 租赁 (80)。选新厂。</li>
+                        <li>疲软（0.2）：租赁 (30) > 新厂 (-50)。选租赁。</li>
+                    </ul>
+
+                    $$\text{E}(\text{最优年收益}) = 250(0.3) + 120(0.5) + 30(0.2) = 141 \text{ 万元/年}$$
+                    <p class="mb-1">计算 EVPI (简化计算）：$\text{EVPI} = (\text{E}(\text{最优年收益}) - \text{E}(\text{最大方案年收益})) \times \text{年限}$</p>
+                    $$\text{EVPI} = (141 - 85) \times 4 = 56 \times 4 = 224 \text{ 万元}$$
+                    <p class="font-bold">最终答案：$224$ 万元。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="quiz-section space-y-6">
+
+        <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q12">
+            <p class="font-semibold text-gray-800 mb-3">【测验 5-1】期望值准则 ($EMV$) 是风险型决策分析中使用的主要决策准则，它适用于哪种决策环境？</p>
+            <div class="flex flex-col space-y-2">
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q12', this, 'B', '期望值准则依赖于已知的概率信息来计算加权平均收益，是风险型决策的核心方法。')">A. 结果明确，概率为 $100\\%$</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q12', this, 'B', '期望值准则依赖于已知的概率信息来计算加权平均收益，是风险型决策的核心方法。')">B. 概率分布已知，存在多种自然状态</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q12', this, 'B', '期望值准则依赖于已知的概率信息来计算加权平均收益，是风险型决策的核心方法。')">C. 概率完全未知，无法估计</button>
+            </div>
+            <div id="reason-q12" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+        </div>
+
+        <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q13">
+            <p class="font-semibold text-gray-800 mb-3">【测验 5-2】在分析一个多阶段决策树时，正确的计算方法和方向是：</p>
+            <div class="flex flex-col space-y-2">
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q13', this, 'C', '这是决策树分析的标准方法：逆推计算概率节点的期望值，在决策节点（矩形）选择最优方案并剪枝。')">A. 顺推法（从左向右）计算期望值，并在概率节点修枝</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q13', this, 'C', '这是决策树分析的标准方法：逆推计算概率节点的期望值，在决策节点（矩形）选择最优方案并剪枝。')">B. 逆推法（从右向左）计算期望值，并在概率节点修枝</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q13', this, 'C', '这是决策树分析的标准方法：逆推计算概率节点的期望值，在决策节点（矩形）选择最优方案并剪枝。')">C. 逆推法（从右向左）计算期望值，并在决策节点修枝</button>
+            </div>
+            <div id="reason-q13" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+        </div>
+        
+        <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q14">
+            <p class="font-semibold text-gray-800 mb-3">【测验 5-3】完全情报价值 ($EVPI$) 中的 $EPI$ 代表什么？</p>
+            <div class="flex flex-col space-y-2">
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q14', this, 'B', '$EPI$ (Expected Payoff with Perfect Information) 是指拥有完美信息后的期望收益，即在知道未来状态的情况下，总是选择最优方案所获得的期望收益。')">A. 最乐观情况下能够获得的最大收益</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q14', this, 'B', '$EPI$ (Expected Payoff with Perfect Information) 是指拥有完美信息后的期望收益，即在知道未来状态的情况下，总是选择最优方案所获得的期望收益。')">B. 在知道未来状态的情况下，选择最优方案的期望收益</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q14', this, 'B', '$EPI$ (Expected Payoff with Perfect Information) 是指拥有完美信息后的期望收益，即在知道未来状态的情况下，总是选择最优方案所获得的期望收益。')">C. 所有方案期望收益的平均值</button>
+            </div>
+            <div id="reason-q14" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+        </div>
+
+    </div>
+</div>
+    <div id="module6" class="tab-content hidden">
+    <h2>竞争性决策分析 (博弈论)</h2>
+
+    <div class="concept border border-gray-100 p-4 rounded-lg bg-gray-50 mb-6">
+        <h3>1. 占优策略与纳什均衡</h3>
+        <ul class="list-disc ml-6 text-gray-700 space-y-1">
+            <li>严格占优策略：无论对手选择什么，该策略都能为玩家带来高于其他所有策略的收益。</li>
+            <li>纳什均衡 (Nash Equilibrium)：任何一方在假定其他方策略不变的情况下，单方面改变自己的策略都不会获得更高的收益。它是一种自发稳定的状态。</li>
+        </ul>
+
+        <h3 class="mt-4">2. 囚徒困境</h3>
+        <ul class="list-disc ml-6 text-gray-700 space-y-1">
+            <li>困境特征：双方都选择对自身最有利的占优策略，但最终导致了一个次优的纳什均衡（低于双方合作时的收益）。</li>
+            <li>解决机制：可通过建立长期合作、重复博弈、外部约束（如合同、监管惩罚）等方式来改变支付结构，促进合作。</li>
+        </ul>
+    </div>
+    
+    <div class="mt-6">
+        <h3 class="text-xl font-bold text-gray-700 mb-3 flex items-center gap-2">
+            <i class="ph ph-users-three text-2xl"></i> 题目 5：博弈论案例分析 (10分)
+        </h3>
+        
+        <div class="bg-white border border-blue-300 rounded-lg shadow-md mb-4">
+            <button 
+                class="w-full text-left p-4 flex justify-between items-center font-semibold text-gray-800 hover:bg-blue-50 transition-colors"
+                onclick="toggleAnswer('calc-qa-5-1')">
+                <span>❓ 问题：广告策略博弈（收益矩阵 $A\B$：H(2,2), L(6,1); L(1,6), H(4,4)）。找出占优策略、纳什均衡并分析类型。</span>
+                <i class="ph ph-caret-down text-lg"></i>
+            </button>
+            
+            <div id="calc-qa-5-1" class="hidden p-4 pt-0 border-t border-blue-200">
+                <div class="bg-blue-50 p-3 rounded-md text-sm text-blue-800">
+                    <strong>✔ 答案与解析 (博弈论)</strong>
+                    
+                    <p class="mt-2 mb-1"><strong>(1) 占优策略分析 (3分)：</strong></p>
+                    <ul class="list-disc pl-5">
+                        <li>**公司 A：** B选H时 (A选H:2 > A选L:1)；B选L时 (A选H:6 > A选L:4)。A的**占优策略是 H** (高投入)。</li>
+                        <li>**公司 B：** A选H时 (B选H:2 > B选L:1)；A选L时 (B选L:6 > B选H:4)。B**无占优策略**。</li>
+                        <p class="font-bold my-1">结论：A 有占优策略 H。B 无占优策略。</p>
+                    </ul>
+                    
+                    <p class="mt-2 mb-1"><strong>(2) 纳什均衡 (纯策略) (4分)：</strong></p>
+                    <p class="mb-1">根据最佳反应法，纳什均衡点是：**(H, H)** (2, 2)。</p>
+                    <p class="mb-1"><strong>经济含义：</strong> 双方都选择高投入 (H, H) 导致利润 (2, 2) 低于双方都低投入 (L, L) 的利润 (4, 4)。</p>
+                    
+                    <p class="mt-2 mb-1"><strong>(3) 经典博弈类型与解决 (3分)：</strong></p>
+                    <p class="mb-1">该博弈类型属于 **囚徒困境**。双方最优反应导向了 **(H, H)** (2, 2)，是集体次优的选择。</p>
+                    <p class="mb-1"><strong>解决困境：</strong> 通过建立**重复博弈**预期或**行业协会**（制定价格下限、限制广告投入）等**外部约束**，改变收益矩阵，促使双方选择合作（L, L），以实现更高的共同利润。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="quiz-section space-y-6">
+
+        <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q15">
+            <p class="font-semibold text-gray-800 mb-3">【测验 6-1】纳什均衡的定义意味着，一旦达到均衡状态，任何参与者在假定其他方策略不变的情况下：</p>
+            <div class="flex flex-col space-y-2">
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q15', this, 'B', '纳什均衡的特征是，每个参与者的策略都是在给定其他参与者策略下的最优反应，因此无人有单方面改变策略的动机，收益不会提高。')">A. 单方面改变自己的策略，其收益一定会提高</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q15', this, 'B', '纳什均衡的特征是，每个参与者的策略都是在给定其他参与者策略下的最优反应，因此无人有单方面改变策略的动机，收益不会提高。')">B. 单方面改变自己的策略，其收益不会提高（可能不变或下降）</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q15', this, 'B', '纳什均衡的特征是，每个参与者的策略都是在给定其他参与者策略下的最优反应，因此无人有单方面改变策略的动机，收益不会提高。')">C. 一定会带来合作的最优结果（帕累托最优）</button>
+            </div>
+            <div id="reason-q15" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+        </div>
+
+        <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q16">
+            <p class="font-semibold text-gray-800 mb-3">【测验 6-2】如果一个策略无论对手选择什么，都能为玩家带来高于其他所有策略的收益，这个策略被称为：</p>
+            <div class="flex flex-col space-y-2">
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q16', this, 'B', '这是严格占优策略的定义，它在任何情况下都能带来更高的收益。')">A. 纳什均衡策略</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q16', this, 'B', '这是严格占优策略的定义，它在任何情况下都能带来更高的收益。')">B. 严格占优策略</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q16', this, 'B', '这是严格占优策略的定义，它在任何情况下都能带来更高的收益。')">C. 最小最大策略</button>
+            </div>
+            <div id="reason-q16" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+        </div>
+
+        <div class="p-5 border border-blue-200 rounded-xl bg-white shadow-sm" data-qid="q17">
+            <p class="font-semibold text-gray-800 mb-3">【测验 6-3】经典的“囚徒困境”博弈中，双方选择对自身最有利的策略，最终导致了什么结果？</p>
+            <div class="flex flex-col space-y-2">
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="A" onclick="checkAnswer('q17', this, 'B', '囚徒困境的特征是，个人理性选择导致集体次优结果，达成了纳什均衡，但总收益低于双方合作时的收益。')">A. 实现了双方合作收益最高的帕累托最优</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="B" onclick="checkAnswer('q17', this, 'B', '囚徒困境的特征是，个人理性选择导致集体次优结果，达成了纳什均衡，但总收益低于双方合作时的收益。')">B. 达成了纳什均衡，但这是一个次优的结果</button>
+                <button class="quiz-option text-left border-2 p-3 rounded-lg text-sm" data-answer="C" onclick="checkAnswer('q17', this, 'B', '囚徒困境的特征是，个人理性选择导致集体次优结果，达成了纳什均衡，但总收益低于双方合作时的收益。')">C. 博弈无解，没有纳什均衡</button>
+            </div>
+            <div id="reason-q17" class="hidden mt-3 p-3 bg-blue-50 rounded text-blue-800 text-sm"></div>
+        </div>
+
+    </div>
+</div>
+</div>
+
+</body>
+</html>
