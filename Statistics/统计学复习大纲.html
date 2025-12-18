@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>统计学期末复习与巩固训练</title>
+    <!-- 引入 Tailwind CSS 进行布局 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Phosphor Icons 图标库 -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- 引入 Chart.js 用于可视化演示 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- 引入 MathJax 用于显示公式 (修复1: 调整加载顺序和配置) -->
+    <script>
+        // MathJax 配置需要在加载脚本之前定义 (但 MathJax 官方推荐将配置放在异步脚本之前)
+        // 我们将其放在顶部，确保配置在加载时生效
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            },
+            // 确保 MathJax 准备好后才执行 typeset
+            startup: {
+                ready() {
+                    MathJax.startup.defaultReady();
+                    // 确保在 MathJax 准备就绪后立即进行初始渲染
+                    // 初始渲染将在 DOMContentLoaded 中触发
+                }
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; }
+        .tab-active { background-color: #2563eb; color: white; }
+        .tab-inactive { background-color: white; color: #4b5563; hover:bg-gray-100; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
+        /* 强制 MathJax 渲染公式 */
+        .math { white-space: nowrap; } 
+    </style>
+</head>
+<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-md z-10 flex-none">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="ph ph-chart-bar text-3xl text-blue-600"></i>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-900">统计学期末复习与巩固训练</h1>
+                    <p class="text-xs text-gray-500">核心知识点回顾与变式应用练习</p>
+                </div>
+            </div>
+            <div class="text-sm text-blue-600 font-medium bg-blue-50 px-3 py-1 rounded-full">
+                <i class="ph ph-lightning mr-1"></i> 课堂复习专用
+            </div>
+        </div>
+    </header>
+
+    <!-- 主体内容区 -->
+    <div class="flex flex-1 overflow-hidden max-w-7xl mx-auto w-full">
+        
+        <!-- 左侧：模块导航 -->
+        <nav class="w-64 bg-white border-r border-gray-200 overflow-y-auto flex-none hidden md:block">
+            <div class="p-4 space-y-2">
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">复习模块</p>
+                <button onclick="switchTab('basics')" id="btn-basics" class="w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all tab-active shadow-sm">
+                    <i class="ph ph-database text-lg"></i>
+                    <span>第一章：基础与抽样</span>
+                </button>
+                <button onclick="switchTab('descriptive')" id="btn-descriptive" class="w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all tab-inactive">
+                    <i class="ph ph-chart-pie-slice text-lg"></i>
+                    <span>第二章：描述统计与指标</span>
+                </button>
+                <button onclick="switchTab('sampling')" id="btn-sampling" class="w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all tab-inactive">
+                    <i class="ph ph-target text-lg"></i>
+                    <span>第三章：抽样推断与估计</span>
+                </button>
+                <button onclick="switchTab('hypothesis')" id="btn-hypothesis" class="w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all tab-inactive">
+                    <i class="ph ph-scales text-lg"></i>
+                    <span>第四章：假设检验</span>
+                </button>
+                <button onclick="switchTab('indices')" id="btn-indices" class="w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-all tab-inactive">
+                    <i class="ph ph-trend-up text-lg"></i>
+                    <span>第五章：统计指数</span>
+                </button>
+            </div>
+            
+            <!-- 移动端提示 -->
+            <div class="p-4 mt-auto">
+                <div class="bg-blue-50 p-3 rounded-lg text-xs text-blue-700">
+                    <p class="font-bold mb-1">💡 复习建议</p>
+                    先看左侧大纲，掌握概念和公式，再做右侧的“变式训练”检测掌握程度。
+                </div>
+            </div>
+        </nav>
+
+        <!-- 右侧：内容显示区 -->
+        <main class="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-8" id="content-area">
+            
+            <!-- 模块 1: 基础与抽样 -->
+            <div id="tab-basics" class="space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <span class="w-2 h-8 bg-blue-600 rounded-full"></span> 统计学基础与数据类型
+                    </h2>
+                    
+                    <!-- 知识大纲 -->
+                    <div class="grid md:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-gray-700 mb-2 border-b pb-2">核心定义与概念</h3>
+                            <ul class="list-disc pl-5 space-y-1 text-sm text-gray-600">
+                                <li><strong>统计学目标</strong>：利用样本数据推断总体的规律。</li>
+                                <li><strong>推断 vs 描述</strong>：推断统计（归纳、预测）；描述统计（整理、展示、概括）。</li>
+                                <li><strong>总体与样本</strong>：
+                                    <br>总体参数（Parameter）：未知的常量（如 \(\mu\), \(\sigma\)）。
+                                    <br>样本统计量（Statistic）：随机变量（如 \(\bar{x}\), \(S\)）。
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-gray-700 mb-2 border-b pb-2">标志与抽样方法</h3>
+                            <ul class="list-disc pl-5 space-y-1 text-sm text-gray-600">
+                                <li><strong>标志</strong>：
+                                    <br>品质标志（定性）：性别、职业。
+                                    <br>数量标志（定量）：年龄、收入。
+                                </li>
+                                <li><strong>抽样</strong>：
+                                    <br>概率抽样（随机）：可计算误差（如简单随机抽样）。
+                                    <br>非概率抽样（非随机）：不可推断，无法计算误差（如判断抽样）。
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 变式训练 -->
+                    <div class="mt-8">
+                        <h3 class="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
+                            <i class="ph ph-pencil-simple"></i> 变式自测题
+                        </h3>
+                        <!-- Q1 抽样方法 -->
+                        <div class="mb-4 bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="font-medium text-gray-800 mb-2">1. [单选] 为了评估某大学食堂的就餐满意度，调查员在午餐时间段随机拦住了100名学生进行问卷调查。这种抽样方法最可能导致的结果是：</p>
+                            <div class="grid grid-cols-2 gap-2 text-sm mb-3">
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason1-1')">A. 抽样误差为零</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, true, 'reason1-1')">B. 结果可能存在较大的非抽样误差</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason1-1')">C. 无法计算总体的标准差</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason1-1')">D. 属于分层抽样</button>
+                            </div>
+                            <div id="reason1-1" class="hidden text-sm bg-blue-50 p-3 rounded text-blue-800">
+                                <strong>解析：</strong> 选 B。在食堂随机拦截是一种方便抽样，但它容易导致“在食堂就餐的学生”与“不在食堂就餐的学生”之间的覆盖误差，属于非抽样误差的一种。
+                            </div>
+                        </div>
+                         <!-- Q2 统计量 vs 参数 -->
+                        <div class="mb-4 bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="font-medium text-gray-800 mb-2">2. [判断] 在进行统计推断时，样本均值 \(\bar{x}\) 是一个固定的常量，而总体均值 \(\mu\) 是一个随机变量。</p>
+                            <div class="flex gap-4 text-sm mb-3">
+                                <button class="q-opt px-4 py-2 border rounded hover:bg-gray-50" onclick="checkAns(this, false, 'reason1-2')">正确</button>
+                                <button class="q-opt px-4 py-2 border rounded hover:bg-gray-50" onclick="checkAns(this, true, 'reason1-2')">错误</button>
+                            </div>
+                            <div id="reason1-2" class="hidden text-sm bg-blue-50 p-3 rounded text-blue-800">
+                                <strong>解析：</strong> 选 错误。定义反了。总体参数 \(\mu\) 是未知的常量；样本统计量 \(\bar{x}\) 是随机变量（每次抽样结果都不同）。
+                            </div>
+                        </div>
+                        <!-- Q3 研究方法 -->
+                        <div class="mb-4 bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="font-medium text-gray-800 mb-2">3. [单选] 统计学研究中，核心目标是“利用已知的事实和数据，对未知的部分进行预测和估计”。这主要体现了哪种统计方法？</p>
+                            <div class="grid grid-cols-2 gap-2 text-sm mb-3">
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, true, 'reason1-3')">A. 推断统计</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason1-3')">B. 描述统计</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason1-3')">C. 假设检验</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason1-3')">D. 总体调查</button>
+                            </div>
+                            <div id="reason1-3" class="hidden text-sm bg-blue-50 p-3 rounded text-blue-800">
+                                <strong>解析：</strong> 选 A。推断统计的任务就是从样本推断总体（预测、估计、检验），描述统计只是概括数据的特征。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 模块 2: 描述统计 -->
+            <div id="tab-descriptive" class="hidden space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <span class="w-2 h-8 bg-green-500 rounded-full"></span> 描述统计与指标体系
+                    </h2>
+
+                    <!-- 知识大纲 & 可视化 -->
+                    <div class="grid lg:grid-cols-3 gap-6 mb-6">
+                        <div class="lg:col-span-2">
+                             <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                                <h3 class="font-bold text-gray-700 mb-2 border-b pb-2">集中趋势与相对波动</h3>
+                                <ul class="list-disc pl-5 space-y-2 text-sm text-gray-600">
+                                    <li><strong>分布形态关系</strong>（重点）：
+                                        <br>左偏（负偏）： \(\bar{x} < \text{Median} < \text{Mode}\) （极小值拉低均值）
+                                        <br>右偏（正偏）： \(\text{Mode} < \text{Median} < \bar{x}\) （极大值拉高均值）
+                                    </li>
+                                    <li><strong>变异指标</strong>：
+                                        <br>离散系数（$CV$）： \(CV = S/\bar{x}\)。消除单位和平均数的影响，比较数据的**相对稳定性**。
+                                    </li>
+                                </ul>
+                            </div>
+                             <div class="bg-gray-50 p-4 rounded-lg">
+                                <h3 class="font-bold text-gray-700 mb-2 border-b pb-2">总量与相对指标</h3>
+                                <ul class="list-disc pl-5 space-y-2 text-sm text-gray-600">
+                                    <li><strong>时期指标</strong>（流量）：反映一段时间内的过程总量，可累加（如年销售收入）。</li>
+                                    <li><strong>时点指标</strong>（存量）：反映某一瞬间的状态，不可累加（如期末库存、年末人口）。</li>
+                                    <li><strong>相对指标</strong>：结构指标（部分/总体）、强度指标（人均、密度）。</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 p-4 rounded-lg flex flex-col items-center justify-center">
+                            <h4 class="text-sm font-bold text-gray-500 mb-2">偏态分布示意图</h4>
+                            <div class="chart-container">
+                                <canvas id="skewChart"></canvas>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-2 text-center">点击图例隐藏/显示曲线</p>
+                        </div>
+                    </div>
+
+                    <!-- 变式训练 -->
+                    <div class="mt-8">
+                        <h3 class="text-lg font-bold text-green-700 mb-4 flex items-center gap-2">
+                            <i class="ph ph-pencil-simple"></i> 变式自测题
+                        </h3>
+                        <!-- Q1 集中趋势应用 -->
+                        <div class="mb-4 bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="font-medium text-gray-800 mb-2">1. [单选] 某工厂工人月薪数据是典型的“右偏”分布。如果工厂领导希望报告一个能代表“普通员工”薪资水平的指标，最合适的选择是：</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm mb-3">
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason2-1')">A. 算术平均数</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, true, 'reason2-1')">B. 中位数</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason2-1')">C. 极差</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason2-1')">D. 方差</button>
+                            </div>
+                            <div id="reason2-1" class="hidden text-sm bg-green-50 p-3 rounded text-green-800">
+                                <strong>解析：</strong> 选 B。右偏分布受少数高薪极端值影响，平均数会被拉高，不能反映普通员工的薪资水平。中位数不受极端值影响，最能代表“中间”水平。
+                            </div>
+                        </div>
+                        <!-- Q2 离散度 -->
+                         <div class="mb-4 bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="font-medium text-gray-800 mb-2">2. [单选] 比较甲公司的年销售额（单位：万元）和乙公司的员工平均工龄（单位：年）的波动程度，应该使用什么指标？</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm mb-3">
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason2-2')">A. 标准差</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason2-2')">B. 方差</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, true, 'reason2-2')">C. 离散系数</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason2-2')">D. 中位数</button>
+                            </div>
+                             <div id="reason2-2" class="hidden text-sm bg-green-50 p-3 rounded text-green-800">
+                                <strong>解析：</strong> 选 C。因为两组数据的量纲（单位）不同，且平均数水平差异大，必须使用离散系数 (\(CV = S/\bar{x}\)) 来比较相对波动程度。
+                            </div>
+                        </div>
+                        <!-- Q3 指标类型 -->
+                        <div class="mb-4 bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="font-medium text-gray-800 mb-2">3. [单选] 下列哪一项指标属于**强度相对指标**？</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm mb-3">
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason2-3')">A. 某市的失业率</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason2-3')">B. 某产品今年的产量是去年的1.2倍</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, true, 'reason2-3')">C. 人均可支配收入</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason2-3')">D. 某大学男女学生数量之比</button>
+                            </div>
+                             <div id="reason2-3" class="hidden text-sm bg-green-50 p-3 rounded text-green-800">
+                                <strong>解析：</strong> 选 C。强度相对指标是两个性质不同但有联系的总体之比，反映密度或平均水平。失业率是结构指标；B是动态指标；D是比例指标。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 模块 3: 抽样推断 -->
+            <div id="tab-sampling" class="hidden space-y-6">
+                 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <span class="w-2 h-8 bg-purple-500 rounded-full"></span> 抽样推断与估计
+                    </h2>
+                    
+                    <div class="grid md:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-gray-700 mb-2 border-b pb-2">抽样误差 (SE)</h3>
+                            <ul class="list-disc pl-5 space-y-2 text-sm text-gray-600">
+                                <li><strong>公式</strong>：平均数抽样的标准误 \(\sigma_{\bar{x}} = \frac{\sigma}{\sqrt{n}}\)。</li>
+                                <li><strong>误差类型</strong>：
+                                    <ul class="list-circle pl-4 mt-1 text-gray-500">
+                                        <li>抽样误差：随机性产生，无法避免但可计算。</li>
+                                        <li>非抽样误差：人为或系统性因素产生（如登记错误、回答偏差），理论上可避免。</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                         <div class="bg-gray-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-gray-700 mb-2 border-b pb-2">区间估计</h3>
+                            <ul class="list-disc pl-5 space-y-2 text-sm text-gray-600">
+                                <li><strong>极限误差</strong>：\(\Delta = Z_{\alpha/2} \times \sigma_{\bar{x}}\)。</li>
+                                <li><strong>置信度与精度</strong>：
+                                    <br>提高置信度 $\rightarrow Z$值增大 $\rightarrow$ 极限误差 \(\Delta\) 增大 $\rightarrow$ 区间**变宽**（精度降低）。
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 变式训练 -->
+                    <div class="mt-8">
+                        <h3 class="text-lg font-bold text-purple-700 mb-4 flex items-center gap-2">
+                            <i class="ph ph-pencil-simple"></i> 变式自测题
+                        </h3>
+                        <!-- Q1 样本量与误差 -->
+                        <div class="mb-4 bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="font-medium text-gray-800 mb-2">1. [计算] 某次抽样调查的样本量为 \(n=100\)，标准误为 5。若希望将标准误降低到 1，样本量 \(n\) 至少需要增加到多少？</p>
+                            <div class="grid grid-cols-2 gap-2 text-sm mb-3">
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason3-1')">A. 500</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason3-1')">B. 1000</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, true, 'reason3-1')">C. 2500</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason3-1')">D. 5000</button>
+                            </div>
+                            <div id="reason3-1" class="hidden text-sm bg-purple-50 p-3 rounded text-purple-800">
+                                <strong>解析：</strong> 选 C。原标准误 \(\sigma_{\bar{x}1} = 5\)，目标标准误 \(\sigma_{\bar{x}2} = 1\)。误差缩小到 $1/5$。根据公式 \(\sigma_{\bar{x}} \propto 1/\sqrt{n}\)，样本量需扩大 \(5^2 = 25\) 倍。 $100 \times 25 = 2500$。
+                            </div>
+                        </div>
+                        <!-- Q2 置信度与区间 -->
+                        <div class="mb-4 bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="font-medium text-gray-800 mb-2">2. [单选] 假设一家银行报告，其客户的平均存款在[10万, 12万]区间，置信度为95%。如果他们将置信度提高到99%，以下哪项最可能是新的估计区间？</p>
+                            <div class="grid grid-cols-2 gap-2 text-sm mb-3">
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason3-2')">A. [10.5万, 11.5万]</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason3-2')">B. [9.5万, 12.5万]</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, true, 'reason3-2')">C. [9.0万, 13.0万]</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason3-2')">D. [10万, 11万]</button>
+                            </div>
+                            <div id="reason3-2" class="hidden text-sm bg-purple-50 p-3 rounded text-purple-800">
+                                <strong>解析：</strong> 选 C。提高置信度，区间必须变宽才能保证有更高的把握度包含总体参数，因此必须选择比 [10万, 12万] 更宽的区间。
+                            </div>
+                        </div>
+                        <!-- Q3 总体变异 -->
+                        <div class="mb-4 bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="font-medium text-gray-800 mb-2">3. [判断] 在进行抽样调查时，如果总体数据的变异程度（标准差 \(\sigma\)）越大，抽样平均误差 (\(\sigma_{\bar{x}}\)) 就越小。</p>
+                            <div class="flex gap-4 text-sm mb-3">
+                                <button class="q-opt px-4 py-2 border rounded hover:bg-gray-50" onclick="checkAns(this, false, 'reason3-3')">正确</button>
+                                <button class="q-opt px-4 py-2 border rounded hover:bg-gray-50" onclick="checkAns(this, true, 'reason3-3')">错误</button>
+                            </div>
+                            <div id="reason3-3" class="hidden text-sm bg-purple-50 p-3 rounded text-purple-800">
+                                <strong>解析：</strong> 选 错误。根据公式 \(\sigma_{\bar{x}} = \frac{\sigma}{\sqrt{n}}\)，总体变异程度 \(\sigma\) 与抽样平均误差成正比，总体越分散，误差越大。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 模块 4: 假设检验 -->
+            <div id="tab-hypothesis" class="hidden space-y-6">
+                 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <span class="w-2 h-8 bg-red-500 rounded-full"></span> 假设检验逻辑与错误类型
+                    </h2>
+                    
+                    <div class="grid md:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-gray-700 mb-2 border-b pb-2">假设的设定与检验方向</h3>
+                            <ul class="list-disc pl-5 space-y-2 text-sm text-gray-600">
+                                <li><strong>原假设 ($H_0$)</strong>：总是包含等号，代表希望被推翻的“现状”。</li>
+                                <li><strong>检验方向</strong>：
+                                    <ul class="list-circle pl-4 mt-1 text-gray-500">
+                                        <li>双侧检验：关注“是否不等于” ($\ne$)。</li>
+                                        <li>单侧检验：关注“是否大于”或“是否小于”。</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                         <div class="bg-gray-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-gray-700 mb-2 border-b pb-2">两类错误</h3>
+                            <ul class="list-disc pl-5 space-y-2 text-sm text-gray-600">
+                                <li><strong>第一类错误 ($\alpha$)</strong>：“弃真”。$H_0$ 为真，但拒绝了。（冤枉好人）</li>
+                                <li><strong>第二类错误 ($\beta$)</strong>：“纳伪”。$H_0$ 为假，但接受了。（放过坏人）</li>
+                                <li><strong>$\alpha$ 的控制</strong>：显著性水平 \(\alpha\) 是研究者愿意承担的第一类错误的最大概率。</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 变式训练 -->
+                    <div class="mt-8">
+                        <h3 class="text-lg font-bold text-red-700 mb-4 flex items-center gap-2">
+                            <i class="ph ph-pencil-simple"></i> 变式自测题
+                        </h3>
+                        <!-- Q1 错误类型场景 -->
+                        <div class="mb-4 bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="font-medium text-gray-800 mb-2">1. [单选] 某公司测试一种新的生产工艺，原假设 $H_0$ 是“新工艺不会提高产量”。如果实际情况是新工艺确实能提高产量，但检验结果却显示不显著，公司因此继续使用旧工艺。公司犯了哪类错误？</p>
+                            <div class="grid grid-cols-2 gap-2 text-sm mb-3">
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason4-1')">A. 第一类错误（弃真）</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, true, 'reason4-1')">B. 第二类错误（纳伪）</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason4-1')">C. 抽样误差</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason4-1')">D. 无错误</button>
+                            </div>
+                            <div id="reason4-1" class="hidden text-sm bg-red-50 p-3 rounded text-red-800">
+                                <strong>解析：</strong> 选 B。实际情况是 $H_0$（新工艺不会提高产量）是错的（因为它确实提高了）；决策是“显示不显著”即接受了 $H_0$。结果：接受了错的原假设 = 纳伪 = 第二类错误。
+                            </div>
+                        </div>
+                        <!-- Q2 检验方向 -->
+                        <div class="mb-4 bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="font-medium text-gray-800 mb-2">2. [单选] 某教育机构声称他们的考试辅导能使学生的平均分超过 80 分。为验证这一说法，应采用的检验方向是：</p>
+                            <div class="grid grid-cols-2 gap-2 text-sm mb-3">
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason4-2')">A. 双侧检验</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, true, 'reason4-2')">B. 右侧单侧检验</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason4-2')">C. 左侧单侧检验</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason4-2')">D. 描述统计</button>
+                            </div>
+                            <div id="reason4-2" class="hidden text-sm bg-red-50 p-3 rounded text-red-800">
+                                <strong>解析：</strong> 选 B。研究目的是验证“超过”（大于）某一阈值，因此备择假设 $H_1: \mu > 80$ 采用右侧单侧检验。
+                            </div>
+                        </div>
+                        <!-- Q3 显著性水平 -->
+                        <div class="mb-4 bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="font-medium text-gray-800 mb-2">3. [判断] 显著性水平 (\(\alpha\)) 越高（例如从 1% 提高到 5%），研究者越倾向于接受原假设 ($H_0$)。</p>
+                            <div class="flex gap-4 text-sm mb-3">
+                                <button class="q-opt px-4 py-2 border rounded hover:bg-gray-50" onclick="checkAns(this, false, 'reason4-3')">正确</button>
+                                <button class="q-opt px-4 py-2 border rounded hover:bg-gray-50" onclick="checkAns(this, true, 'reason4-3')">错误</button>
+                            </div>
+                            <div id="reason4-3" class="hidden text-sm bg-red-50 p-3 rounded text-red-800">
+                                <strong>解析：</strong> 选 错误。显著性水平 \(\alpha\) 是拒绝 $H_0$ 的临界点。$\alpha$ 越高（5% 比 1% 大），拒绝域越大，研究者越容易拒绝原假设 ($H_0$)，即越倾向于接受备择假设 ($H_1$)。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 模块 5: 统计指数 -->
+            <div id="tab-indices" class="hidden space-y-6">
+                 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <span class="w-2 h-8 bg-orange-500 rounded-full"></span> 统计指数与因素分析
+                    </h2>
+                    
+                    <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                        <h3 class="font-bold text-gray-700 mb-2 border-b pb-2">指数体系与权数选择</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left text-gray-600">
+                                <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                                    <tr>
+                                        <th class="px-4 py-2">指数类型</th>
+                                        <th class="px-4 py-2">价格指数公式</th>
+                                        <th class="px-4 py-2">权数固定原则</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="bg-white border-b">
+                                        <td class="px-4 py-2 font-medium">拉氏指数 (Laspeyres)</td>
+                                        <td class="px-4 py-2 math">\(\frac{\sum p_1 q_0}{\sum p_0 q_0}\)</td>
+                                        <td class="px-4 py-2">固定在<strong>基期数量</strong> (\(q_0\))。常用于居民消费价格指数（CPI）。</td>
+                                    </tr>
+                                    <tr class="bg-gray-50 border-b">
+                                        <td class="px-4 py-2 font-medium">派氏指数 (Paasche)</td>
+                                        <td class="px-4 py-2 math">\(\frac{\sum p_1 q_1}{\sum p_0 q_1}\)</td>
+                                        <td class="px-4 py-2">固定在<strong>报告期数量</strong> (\(q_1\))。</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 变式训练 -->
+                    <div class="mt-8">
+                        <h3 class="text-lg font-bold text-orange-700 mb-4 flex items-center gap-2">
+                            <i class="ph ph-pencil-simple"></i> 变式自测题
+                        </h3>
+                        <!-- Q1 权数应用 -->
+                        <div class="mb-4 bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="font-medium text-gray-800 mb-2">1. [单选] 为了计算某商品价格在两年间的变动对总销售额的影响，同时希望排除消费者购买习惯的变化（销量变化）的影响，最应该选择的指数是：</p>
+                            <div class="grid grid-cols-2 gap-2 text-sm mb-3">
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, true, 'reason5-1')">A. 拉氏价格指数</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason5-1')">B. 派氏价格指数</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason5-1')">C. 数量总指数</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason5-1')">D. 个体指数</button>
+                            </div>
+                            <div id="reason5-1" class="hidden text-sm bg-orange-50 p-3 rounded text-orange-800">
+                                <strong>解析：</strong> 选 A。拉氏指数固定在基期数量 (\(q_0\))，能反映在保持基期购买结构不变的情况下，价格变动对总额的影响，从而排除了数量变化的影响。
+                            </div>
+                        </div>
+                        <!-- Q2 综合性 -->
+                        <div class="mb-4 bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="font-medium text-gray-800 mb-2">2. [判断] 统计指数的“综合性”特点是指它可以测定同一种商品价格在不同时期内的平均变动程度。</p>
+                            <div class="flex gap-4 text-sm mb-3">
+                                <button class="q-opt px-4 py-2 border rounded hover:bg-gray-50" onclick="checkAns(this, false, 'reason5-2')">正确</button>
+                                <button class="q-opt px-4 py-2 border rounded hover:bg-gray-50" onclick="checkAns(this, true, 'reason5-2')">错误</button>
+                            </div>
+                            <div id="reason5-2" class="hidden text-sm bg-orange-50 p-3 rounded text-orange-800">
+                                <strong>解析：</strong> 选 错误。指数的综合性是指它能测定**多种性质不同**的事物的综合变动（如CPI同时衡量食品、交通、教育等价格的平均变动），而不是同一种事物。
+                            </div>
+                        </div>
+                        <!-- Q3 绝对额因素分析 -->
+                        <div class="mb-4 bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="font-medium text-gray-800 mb-2">3. [计算] 某产品年销售额从 100 万元增至 130 万元。已知其中由于**销量增加**带来的销售额增量是 40 万元，那么**价格变动**带来的销售额增量是多少万元？</p>
+                            <div class="grid grid-cols-2 gap-2 text-sm mb-3">
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason5-3')">A. 40 万元</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason5-3')">B. 10 万元</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, false, 'reason5-3')">C. -40 万元</button>
+                                <button class="q-opt p-2 border rounded hover:bg-gray-50 text-left" onclick="checkAns(this, true, 'reason5-3')">D. -10 万元</button>
+                            </div>
+                            <div id="reason5-3" class="hidden text-sm bg-orange-50 p-3 rounded text-orange-800">
+                                <strong>解析：</strong> 选 D。总销售额变动 = 价格影响 + 销量影响。
+                                <br>总变动 = 130 - 100 = 30 万元。
+                                <br>30 万元 = 价格影响 + 40 万元。
+                                <br>价格影响 = 30 - 40 = -10 万元。这表示价格下降导致销售额损失了 10 万元。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- JavaScript 逻辑 -->
+    <script>
+        // 修复2: 创建一个安全的 MathJax 渲染函数
+        function typesetMath(elements) {
+            if (typeof MathJax !== 'undefined' && MathJax.typeset) {
+                // 使用同步的 MathJax.typeset() 或等待异步 promise 完成
+                // 这里我们使用 typesetPromise，但在 MathJax 准备好之前不会被调用
+                MathJax.typesetPromise(elements).catch((err) => console.log('MathJax Typeset Error: ' + err.message));
+            } else if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+                 // 确保兼容性
+                 MathJax.typesetPromise(elements).catch((err) => console.log('MathJax Typeset Error: ' + err.message));
+            }
+        }
+        
+        // 选项卡切换逻辑
+        function switchTab(tabId) {
+            // 隐藏所有内容
+            ['basics', 'descriptive', 'sampling', 'hypothesis', 'indices'].forEach(id => {
+                document.getElementById('tab-' + id).classList.add('hidden');
+                // 更新按钮样式
+                const btn = document.getElementById('btn-' + id);
+                btn.classList.remove('tab-active', 'shadow-sm');
+                btn.classList.add('tab-inactive');
+            });
+
+            // 显示选中内容
+            const activeContent = document.getElementById('tab-' + tabId);
+            activeContent.classList.remove('hidden');
+            const activeBtn = document.getElementById('btn-' + tabId);
+            activeBtn.classList.remove('tab-inactive');
+            activeBtn.classList.add('tab-active', 'shadow-sm');
+            
+            // 移动端优化：点击后自动滚动到顶部
+            document.getElementById('content-area').scrollTop = 0;
+
+            // 重新渲染 MathJax
+            typesetMath([activeContent]);
+        }
+
+        // 答题检查逻辑
+        function checkAns(btn, isCorrect, reasonId) {
+            const parent = btn.parentElement;
+            const allBtns = parent.querySelectorAll('button');
+            const reasonDiv = document.getElementById(reasonId);
+
+            // 禁用该题所有按钮
+            allBtns.forEach(b => {
+                b.disabled = true;
+                b.classList.add('opacity-50', 'cursor-not-allowed');
+            });
+
+            // 样式反馈
+            if (isCorrect) {
+                btn.classList.remove('opacity-50');
+                btn.classList.add('bg-green-100', 'border-green-500', 'text-green-700', 'font-bold');
+                btn.innerHTML += ' <i class="ph ph-check-circle text-lg inline-block align-middle"></i>';
+            } else {
+                btn.classList.remove('opacity-50');
+                btn.classList.add('bg-red-100', 'border-red-500', 'text-red-700');
+                btn.innerHTML += ' <i class="ph ph-x-circle text-lg inline-block align-middle"></i>';
+                
+                // 自动高亮正确答案
+                allBtns.forEach(b => {
+                    if (b.getAttribute('onclick').includes('true')) {
+                        b.classList.remove('opacity-50');
+                        b.classList.add('bg-green-50', 'border-green-300', 'text-green-600');
+                    }
+                });
+            }
+
+            // 显示解析
+            reasonDiv.classList.remove('hidden');
+            
+            // 重新渲染 MathJax
+            typesetMath([reasonDiv]);
+        }
+
+        // 初始化图表: 偏态分布
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('skewChart').getContext('2d');
+            
+            // 生成模拟数据
+            const labels = Array.from({length: 40}, (_, i) => i);
+            // 正态
+            const dataNormal = labels.map(x => Math.exp(-Math.pow(x - 20, 2) / 50));
+            // 右偏 (Right Skewed) - 尾巴在右边
+            const dataSkew = labels.map(x => (x > 5) ? Math.exp(-Math.pow(Math.log(x - 5) - 2.5, 2) / 0.5) * (1/x) * 50 : 0);
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '对称分布 (Mean=Median)',
+                            data: dataNormal,
+                            borderColor: '#9ca3af', // Gray
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            tension: 0.4,
+                            fill: false
+                        },
+                        {
+                            label: '右偏分布 (Mode < Median < Mean)',
+                            data: dataSkew,
+                            borderColor: '#3b82f6', // Blue
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: { enabled: false }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                }
+            });
+            
+            // 默认显示第一个Tab，并触发 MathJax 渲染
+            switchTab('basics');
+        });
+    </script>
+</body>
+</html>
